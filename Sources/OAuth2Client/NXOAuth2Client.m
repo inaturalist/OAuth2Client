@@ -563,6 +563,22 @@ NSString * const NXOAuth2ClientConnectionContextTokenRefresh = @"tokenRefresh";
                 self.accessToken = nil;        // reset the token since it got invalid
             }
             
+            // iNat Gatekeeper returns 400 for any number of errors, try to decode the body
+            // and provide a helpful error
+            if ([[error domain] isEqualToString:NXOAuth2HTTPErrorDomain]
+                && error.code == 400) {
+                
+                id json = [NSJSONSerialization JSONObjectWithData:connection.data options:0 error:&error];
+                if ([json[@"error"] isEqualToString:@"invalid_grant"]) {
+                    // override the error code to 401 so the UI can show a meaningful error
+                    error = [NSError errorWithDomain:NXOAuth2HTTPErrorDomain
+                                                code:401
+                                            userInfo:nil];
+                    
+                    self.accessToken = nil;        // reset the token since it got invalid
+                }
+            }
+            
             if ([delegate respondsToSelector:@selector(oauthClient:didFailToGetAccessTokenWithError:)]) {
                 [delegate oauthClient:self didFailToGetAccessTokenWithError:error];
             }
