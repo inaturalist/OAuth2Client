@@ -570,10 +570,18 @@ NSString * const NXOAuth2ClientConnectionContextTokenRefresh = @"tokenRefresh";
                 
                 id json = [NSJSONSerialization JSONObjectWithData:connection.data options:0 error:&error];
                 if ([json[@"error"] isEqualToString:@"invalid_grant"]) {
+                    NSDictionary *userInfo = nil;
+                    // embed a localized failure reason
+                    if (json[@"error_description"]) {
+                        userInfo = @{
+                            NSLocalizedFailureReasonErrorKey: json[@"error_description"],
+                        };
+                    }
+                    
                     // override the error code to 401 so the UI can show a meaningful error
                     error = [NSError errorWithDomain:NXOAuth2HTTPErrorDomain
                                                 code:401
-                                            userInfo:nil];
+                                            userInfo:userInfo];
                     
                     self.accessToken = nil;        // reset the token since it got invalid
                 }
